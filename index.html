@@ -1,0 +1,2953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DFS Traversal Visualizer – Sohit Narayan</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020209;
+    --panel: #07071a;
+    --panel2: #0a0a1e;
+    --border: #1a1a4a;
+    --accent: #00fff0;
+    --accent2: #b015ff;
+    --accent3: #ff0090;
+    --green: #00ff9f;
+    --yellow: #ffe600;
+    --orange: #ff6600;
+    --red: #ff003c;
+    --gray: #3a3a6a;
+    --white: #e0e8ff;
+    --dim: #5a5a8a;
+    --neon-cyan: #00fff0;
+    --neon-pink: #ff00aa;
+    --neon-purple: #b015ff;
+    --neon-green: #00ff9f;
+    --font-mono: 'JetBrains Mono', 'Share Tech Mono', monospace;
+    --font-display: 'Orbitron', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: var(--font-mono);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 12px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(0,255,240,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(176,21,255,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 60% 80%, rgba(255,0,144,0.04) 0%, transparent 50%);
+  }
+
+  /* HEADER */
+  #header {
+    background: linear-gradient(90deg, #020209 0%, #070720 40%, #0d0730 50%, #070720 60%, #020209 100%);
+    border-bottom: 2px solid transparent;
+    border-image: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-pink), var(--neon-cyan), transparent) 1;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 30px rgba(0,255,240,0.15), 0 0 60px rgba(176,21,255,0.1);
+  }
+  #header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,255,240,0.025) 60px, rgba(0,255,240,0.025) 61px),
+      repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(0,255,240,0.01) 20px, rgba(0,255,240,0.01) 21px);
+    pointer-events: none;
+  }
+  #header::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,255,240,0.06), transparent);
+    animation: headerSweep 4s ease-in-out infinite;
+  }
+  @keyframes headerSweep {
+    0% { left: -100%; }
+    100% { left: 200%; }
+  }
+  .header-title { position: relative; z-index: 1; }
+  .header-title h1 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 900;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 0 8px var(--neon-cyan));
+    letter-spacing: 4px;
+    animation: titlePulse 3s ease-in-out infinite;
+  }
+  @keyframes titlePulse {
+    0%, 100% { filter: drop-shadow(0 0 8px var(--neon-cyan)); }
+    50% { filter: drop-shadow(0 0 18px var(--neon-cyan)) drop-shadow(0 0 30px var(--neon-pink)); }
+  }
+  .header-badge {
+    display: inline-block;
+    background: linear-gradient(90deg, rgba(176,21,255,0.3), rgba(255,0,144,0.3));
+    border: 1px solid var(--neon-purple);
+    color: var(--neon-pink);
+    font-size: 9px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    letter-spacing: 2px;
+    margin-top: 3px;
+    font-family: var(--font-display);
+    box-shadow: 0 0 10px rgba(176,21,255,0.4);
+    animation: badgePulse 2s ease-in-out infinite;
+  }
+  @keyframes badgePulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(176,21,255,0.4); }
+    50% { box-shadow: 0 0 20px rgba(255,0,144,0.6); }
+  }
+  #legend {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    position: relative;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--dim);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* MAIN LAYOUT */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* LEFT CANVAS AREA */
+  #left-area {
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+
+  #graph-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #graph-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+  }
+
+  /* Depth bar */
+  #depth-bar-container {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    bottom: 10px;
+    width: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  #depth-label {
+    font-size: 8px;
+    color: var(--dim);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    letter-spacing: 1px;
+  }
+  #depth-bar-bg {
+    flex: 1;
+    width: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  #depth-bar-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    border-radius: 5px;
+    background: var(--green);
+    transition: height 0.4s ease, background 0.3s;
+  }
+  #depth-val {
+    font-size: 10px;
+    color: var(--accent);
+    font-family: var(--font-display);
+  }
+
+  /* Preset selectors below graph */
+  #presets-bar {
+    border-top: 1px solid var(--border);
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+  #presets-bar span {
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+  .preset-btn {
+    background: rgba(0,0,20,0.6);
+    border: 1px solid rgba(0,255,240,0.2);
+    color: var(--dim);
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    transition: all 0.25s;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+  }
+  .preset-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(0,255,240,0.05));
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .preset-btn:hover::before, .preset-btn.active::before { opacity: 1; }
+  .preset-btn:hover, .preset-btn.active {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    background: rgba(0,255,240,0.08);
+    box-shadow: 0 0 12px rgba(0,255,240,0.3), inset 0 0 8px rgba(0,255,240,0.05);
+  }
+
+  /* DFS Tree panel below graph */
+  #tree-panel {
+    height: 150px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  #tree-panel-header {
+    font-size: 9px;
+    color: var(--dim);
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  #tree-canvas {
+    width: 100%;
+    height: calc(100% - 22px);
+  }
+
+  /* RIGHT PANEL */
+  #right-panel {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--panel);
+  }
+
+  .panel-section {
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .panel-header {
+    padding: 5px 10px;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,255,231,0.04);
+    font-family: var(--font-display);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Controls */
+  #controls-section {
+    padding: 8px 10px;
+  }
+  .btn-row {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 7px;
+    flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    background: linear-gradient(135deg, rgba(0,10,30,0.9), rgba(0,5,20,0.9));
+    border: 1px solid rgba(0,255,240,0.25);
+    color: var(--white);
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    transition: all 0.25s;
+    letter-spacing: 0.5px;
+    flex: 1;
+    min-width: 60px;
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .ctrl-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .ctrl-btn:hover::after { transform: scaleX(1); }
+  .ctrl-btn:hover {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 15px rgba(0,255,240,0.3), 0 0 5px rgba(0,255,240,0.15);
+    background: linear-gradient(135deg, rgba(0,255,240,0.08), rgba(0,10,30,0.9));
+  }
+  .ctrl-btn.active {
+    background: linear-gradient(135deg, rgba(0,255,240,0.15), rgba(0,20,40,0.9));
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 20px rgba(0,255,240,0.4);
+  }
+  .ctrl-btn.danger { border-color: rgba(255,0,60,0.4); color: var(--red); }
+  .ctrl-btn.danger:hover {
+    background: rgba(255,0,60,0.12);
+    box-shadow: 0 0 15px rgba(255,0,60,0.3);
+    border-color: var(--red);
+  }
+
+  .controls-row2 {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 4px;
+  }
+  .speed-label { font-size: 9px; color: var(--dim); white-space: nowrap; }
+  #speed-slider {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 3px;
+  }
+  select {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--white);
+    padding: 4px 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--dim);
+    cursor: pointer;
+  }
+  .checkbox-row input { accent-color: var(--accent); cursor: pointer; }
+
+  /* Metrics */
+  #metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    margin: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .metric-cell {
+    background: linear-gradient(135deg, rgba(0,10,30,0.95), rgba(0,5,15,0.95));
+    padding: 8px 8px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .metric-cell::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    opacity: 0.5;
+  }
+  .metric-cell:hover {
+    background: linear-gradient(135deg, rgba(0,255,240,0.06), rgba(0,5,15,0.95));
+  }
+  .metric-label {
+    font-size: 8px;
+    color: rgba(0,255,240,0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-family: var(--font-display);
+  }
+  .metric-val {
+    font-family: var(--font-display);
+    font-size: 26px;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 15px var(--neon-cyan), 0 0 30px rgba(0,255,240,0.4);
+    line-height: 1;
+    animation: metricGlow 2s ease-in-out infinite;
+  }
+  @keyframes metricGlow {
+    0%, 100% { text-shadow: 0 0 15px var(--neon-cyan), 0 0 30px rgba(0,255,240,0.4); }
+    50% { text-shadow: 0 0 25px var(--neon-cyan), 0 0 50px rgba(0,255,240,0.6), 0 0 80px rgba(0,255,240,0.2); }
+  }
+
+  /* Step explanation */
+  #step-box {
+    margin: 0 10px 8px;
+    padding: 8px 10px;
+    background: rgba(0,255,231,0.04);
+    border: 1px solid rgba(0,255,231,0.2);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--white);
+    line-height: 1.5;
+    min-height: 40px;
+  }
+  #step-box .step-num {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Scrollable sections */
+  #right-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  #right-scroll::-webkit-scrollbar { width: 4px; }
+  #right-scroll::-webkit-scrollbar-track { background: transparent; }
+  #right-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Traversal order */
+  #traversal-order-display {
+    padding: 8px 10px;
+    min-height: 50px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+  }
+  .trav-node {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .trav-node-letter {
+    background: var(--green);
+    color: #000;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    box-shadow: 0 0 12px var(--green);
+  }
+  .trav-node-num {
+    font-size: 8px;
+    color: var(--dim);
+    margin-top: 1px;
+  }
+  .trav-arrow {
+    color: var(--dim);
+    font-size: 14px;
+    margin: 0 1px;
+    align-self: center;
+    margin-bottom: 8px;
+  }
+  @keyframes popIn {
+    0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  /* DFS Stack */
+  #stack-container {
+    padding: 6px 10px;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .stack-frame {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    animation: slideDown 0.25s ease;
+    transition: all 0.3s;
+  }
+  .stack-frame.top-frame {
+    border-color: var(--yellow);
+    background: rgba(255,215,0,0.08);
+  }
+  .stack-frame-node {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--yellow);
+    width: 20px;
+    text-align: center;
+  }
+  .stack-frame-info {
+    font-size: 9px;
+    color: var(--dim);
+    flex: 1;
+  }
+  .stack-frame-depth {
+    font-size: 9px;
+    color: var(--accent2);
+    padding: 1px 5px;
+    border: 1px solid var(--accent2);
+    border-radius: 3px;
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-15px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Current path */
+  #current-path-display {
+    padding: 6px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
+    min-height: 30px;
+    font-size: 12px;
+  }
+  .path-node {
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-size: 12px;
+    animation: fadeIn 0.2s ease;
+  }
+  .path-arrow { color: var(--dim); }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Visited set */
+  #visited-set-display {
+    padding: 6px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 30px;
+  }
+  .visited-chip {
+    background: rgba(0,255,136,0.15);
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    animation: popIn 0.3s ease;
+  }
+
+  /* Backtrack log */
+  #backtrack-log {
+    padding: 6px 10px;
+    max-height: 80px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    scrollbar-width: none;
+  }
+  .backtrack-entry {
+    font-size: 10px;
+    color: var(--orange);
+    animation: fadeIn 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Adjacency list */
+  #adj-list-container {
+    padding: 6px 10px;
+    font-size: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .adj-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin-bottom: 1px;
+    transition: background 0.2s;
+  }
+  .adj-row.current { background: rgba(255,215,0,0.12); }
+  .adj-node-label {
+    color: var(--yellow);
+    width: 14px;
+    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .adj-colon { color: var(--dim); margin-right: 4px; }
+  .adj-neighbor {
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 9px;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    transition: all 0.2s;
+  }
+  .adj-neighbor.visited { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.1); }
+  .adj-neighbor.current-node { border-color: var(--yellow); color: var(--yellow); }
+
+  /* Pseudocode */
+  #pseudocode-panel {
+    padding: 6px 10px;
+    font-size: 10px;
+    line-height: 1.8;
+  }
+  .pcode-line {
+    padding: 1px 6px;
+    border-radius: 2px;
+    color: var(--dim);
+    transition: all 0.2s;
+    white-space: pre;
+  }
+  .pcode-line.active {
+    background: rgba(255,215,0,0.15);
+    color: var(--yellow);
+    border-left: 2px solid var(--yellow);
+  }
+  .pcode-line.keyword { color: var(--accent2); }
+
+  /* Call stack simulation */
+  #call-stack-sim {
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 30px;
+  }
+  .call-frame {
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 9px;
+    color: var(--dim);
+    animation: slideDown 0.25s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .call-frame.call-top {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,255,231,0.06);
+  }
+  .call-frame-tag {
+    font-size: 8px;
+    color: var(--accent2);
+    padding: 1px 4px;
+    border: 1px solid var(--accent2);
+    border-radius: 2px;
+  }
+
+  /* Timestamp table */
+  #timestamp-table {
+    margin: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    font-size: 9px;
+  }
+  .ts-row {
+    display: grid;
+    grid-template-columns: 24px 1fr 1fr 1fr 1fr;
+    gap: 0;
+  }
+  .ts-row.header { background: rgba(0,255,231,0.08); }
+  .ts-cell {
+    padding: 3px 5px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    color: var(--dim);
+  }
+  .ts-row.header .ts-cell { color: var(--accent); font-size: 8px; }
+  .ts-cell:last-child { border-right: none; }
+  .ts-row.active-row .ts-cell { color: var(--yellow); background: rgba(255,215,0,0.06); }
+  .ts-row.done-row .ts-cell { color: var(--green); }
+
+  /* Cycle detection */
+  #cycle-badge {
+    display: none;
+    margin: 4px 10px;
+    padding: 5px 10px;
+    background: rgba(255,51,85,0.15);
+    border: 1px solid var(--red);
+    border-radius: 4px;
+    color: var(--red);
+    font-size: 10px;
+    animation: flashRed 0.5s ease;
+  }
+  @keyframes flashRed {
+    0% { background: rgba(255,51,85,0.5); }
+    100% { background: rgba(255,51,85,0.15); }
+  }
+
+  /* Footer */
+  #footer {
+    border-top: 1px solid var(--border);
+    padding: 5px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 1px;
+    background: var(--panel);
+    flex-shrink: 0;
+  }
+  #footer span { color: var(--accent); }
+
+  /* Presentation mode */
+  body.presentation #right-panel,
+  body.presentation #presets-bar,
+  body.presentation #tree-panel { display: none; }
+  body.presentation #left-area { width: 100%; }
+  body.presentation #graph-canvas { cursor: default; }
+  body.presentation #pres-overlay {
+    display: flex !important;
+  }
+  #pres-overlay {
+    display: none;
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,10,15,0.95);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 20px;
+    z-index: 1000;
+    min-width: 500px;
+    max-width: 700px;
+    font-size: 16px;
+    line-height: 1.6;
+    backdrop-filter: blur(10px);
+  }
+  #pres-nav {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    gap: 10px;
+    z-index: 1000;
+  }
+  body.presentation #pres-nav { display: flex !important; }
+  .pres-btn {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .scanline {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+    pointer-events: none;
+    z-index: 9999;
+    animation: scanMove 8s linear infinite;
+  }
+  @keyframes scanMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100px; }
+  }
+  /* Corner decorations */
+  #header .corner-tl, #header .corner-tr {
+    position: absolute;
+    width: 12px; height: 12px;
+    top: 6px;
+    border-color: var(--neon-pink);
+    border-style: solid;
+    border-width: 0;
+  }
+  #header .corner-tl { left: 6px; border-top-width: 2px; border-left-width: 2px; }
+  #header .corner-tr { right: 6px; border-top-width: 2px; border-right-width: 2px; }
+  /* Glitch text effect */
+  @keyframes glitch {
+    0% { text-shadow: 2px 0 var(--neon-pink), -2px 0 var(--neon-cyan); }
+    20% { text-shadow: -2px 0 var(--neon-pink), 2px 0 var(--neon-cyan); }
+    40% { text-shadow: 2px 2px var(--neon-pink), -2px -2px var(--neon-cyan); }
+    60% { text-shadow: -2px 2px var(--neon-pink), 2px -2px var(--neon-cyan); }
+    80%, 100% { text-shadow: 0 0 var(--neon-pink), 0 0 var(--neon-cyan); }
+  }
+  /* Panel glow borders */
+  .panel-section {
+    border-bottom: 1px solid rgba(0,255,240,0.1);
+    position: relative;
+  }
+  .panel-header {
+    background: linear-gradient(90deg, rgba(0,255,240,0.06), rgba(176,21,255,0.04)) !important;
+    border-bottom: 1px solid rgba(0,255,240,0.15) !important;
+    position: relative;
+    overflow: hidden;
+  }
+  .panel-header::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--neon-cyan), var(--neon-pink));
+  }
+  /* Stack frame upgrade */
+  .stack-frame {
+    background: linear-gradient(135deg, rgba(0,10,30,0.9), rgba(0,5,20,0.8)) !important;
+    border: 1px solid rgba(0,255,240,0.15) !important;
+    border-radius: 4px !important;
+  }
+  .stack-frame.top-frame {
+    border-color: var(--yellow) !important;
+    background: rgba(255,230,0,0.06) !important;
+    box-shadow: 0 0 12px rgba(255,230,0,0.2) !important;
+  }
+  /* Visited chip upgrade */
+  .visited-chip {
+    background: rgba(0,255,159,0.1) !important;
+    border: 1px solid var(--neon-green) !important;
+    box-shadow: 0 0 8px rgba(0,255,159,0.3);
+    font-weight: 600;
+  }
+  /* Traversal node upgrade */
+  .trav-node-letter {
+    background: linear-gradient(135deg, var(--neon-green), rgba(0,200,120,0.8)) !important;
+    box-shadow: 0 0 20px var(--neon-green) !important;
+    font-family: var(--font-display) !important;
+  }
+  /* Adj neighbor upgrade */
+  .adj-neighbor.visited {
+    box-shadow: 0 0 8px rgba(0,255,159,0.4);
+  }
+  /* Call frame top upgrade */
+  .call-frame.call-top {
+    border-color: var(--neon-cyan) !important;
+    color: var(--neon-cyan) !important;
+    box-shadow: 0 0 10px rgba(0,255,240,0.25);
+  }
+  /* Select upgrade */
+  select {
+    background: rgba(0,5,20,0.9) !important;
+    border: 1px solid rgba(0,255,240,0.25) !important;
+    color: var(--neon-cyan) !important;
+  }
+  select:focus { border-color: var(--neon-cyan) !important; box-shadow: 0 0 10px rgba(0,255,240,0.3); }
+  /* Step box upgrade */
+  #step-box {
+    background: linear-gradient(135deg, rgba(0,255,240,0.03), rgba(176,21,255,0.02)) !important;
+    border: 1px solid rgba(0,255,240,0.15) !important;
+    border-radius: 6px !important;
+    position: relative;
+  }
+  /* Cycle badge */
+  #cycle-badge {
+    box-shadow: 0 0 20px rgba(255,0,60,0.4);
+    animation: flashRed 0.5s ease, cyclePulse 1.5s ease-in-out infinite 0.5s !important;
+  }
+  @keyframes cyclePulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,0,60,0.4); }
+    50% { box-shadow: 0 0 40px rgba(255,0,60,0.7); }
+  }
+  /* Footer upgrade */
+  #footer {
+    background: linear-gradient(90deg, #020209, #070720, #020209) !important;
+    border-top: 1px solid rgba(0,255,240,0.15) !important;
+    letter-spacing: 2px !important;
+  }
+  /* Pcode active line */
+  .pcode-line.active {
+    background: rgba(255,230,0,0.12) !important;
+    color: var(--yellow) !important;
+    border-left: 2px solid var(--yellow) !important;
+    box-shadow: inset 0 0 20px rgba(255,230,0,0.05);
+  }
+  /* Right panel upgrade */
+  #right-panel {
+    background: linear-gradient(180deg, #07071a 0%, #050516 100%) !important;
+    border-left: 1px solid rgba(0,255,240,0.1);
+  }
+  /* Presets bar */
+  #presets-bar {
+    background: linear-gradient(90deg, #07071a, #0a0a1e) !important;
+    border-top: 1px solid rgba(0,255,240,0.1) !important;
+  }
+  /* Tree panel */
+  #tree-panel {
+    background: linear-gradient(180deg, #07071a, #050516) !important;
+  }
+
+  /* ===== GLASSMORPHISM PANELS ===== */
+  .panel-section {
+    background: rgba(7,7,26,0.55) !important;
+    backdrop-filter: blur(10px);
+  }
+  /* ===== TIMELINE SCRUBBER ===== */
+  #timeline-wrap {
+    padding: 6px 10px 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #timeline-slider {
+    flex: 1;
+    accent-color: var(--neon-pink);
+    height: 4px;
+    cursor: pointer;
+  }
+  #timeline-counter {
+    font-size: 9px;
+    color: var(--neon-cyan);
+    font-family: var(--font-display);
+    white-space: nowrap;
+    min-width: 50px;
+    text-align: right;
+  }
+  /* ===== MODE TOGGLE BUTTONS ===== */
+  .mode-btn-row {
+    display: flex;
+    gap: 4px;
+    padding: 0 10px 6px;
+    flex-wrap: wrap;
+  }
+  .mode-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 4px 6px;
+    font-size: 9px;
+    font-family: var(--font-display);
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid rgba(0,255,240,0.2);
+    background: rgba(0,5,20,0.8);
+    color: var(--dim);
+    transition: all 0.25s;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+  .mode-btn:hover { border-color: var(--neon-pink); color: var(--neon-pink); box-shadow: 0 0 10px rgba(255,0,170,0.3); }
+  .mode-btn.active { background: rgba(255,0,170,0.15); border-color: var(--neon-pink); color: var(--neon-pink); box-shadow: 0 0 15px rgba(255,0,170,0.4); }
+  /* ===== CHALLENGE MODE OVERLAY ===== */
+  #challenge-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 500;
+    pointer-events: none;
+  }
+  #challenge-overlay.active { display: block; }
+  #challenge-quiz-box {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(2,2,20,0.96);
+    border: 2px solid var(--neon-pink);
+    border-radius: 12px;
+    padding: 20px 28px;
+    min-width: 340px;
+    max-width: 420px;
+    box-shadow: 0 0 60px rgba(255,0,170,0.4), inset 0 0 40px rgba(255,0,170,0.05);
+    pointer-events: all;
+    text-align: center;
+  }
+  #quiz-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    color: var(--neon-pink);
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+  }
+  #quiz-question {
+    font-size: 14px;
+    color: var(--white);
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+  #quiz-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  .quiz-choice {
+    padding: 8px 18px;
+    border: 1px solid var(--neon-cyan);
+    border-radius: 6px;
+    background: rgba(0,255,240,0.07);
+    color: var(--neon-cyan);
+    font-family: var(--font-display);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 52px;
+  }
+  .quiz-choice:hover { background: rgba(0,255,240,0.2); box-shadow: 0 0 20px rgba(0,255,240,0.4); transform: scale(1.08); }
+  .quiz-choice.correct { background: rgba(0,255,159,0.25) !important; border-color: var(--neon-green) !important; color: var(--neon-green) !important; }
+  .quiz-choice.wrong { background: rgba(255,0,60,0.2) !important; border-color: var(--red) !important; color: var(--red) !important; }
+  #quiz-timer-bar-wrap { background: rgba(255,255,255,0.08); border-radius: 4px; height: 5px; overflow: hidden; margin-bottom: 10px; }
+  #quiz-timer-bar { height: 100%; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink)); transition: width 0.1s linear; border-radius: 4px; }
+  #quiz-feedback {
+    font-size: 22px;
+    min-height: 30px;
+    margin-bottom: 6px;
+  }
+  #challenge-hud {
+    position: absolute;
+    top: 70px;
+    left: 10px;
+    background: rgba(2,2,20,0.85);
+    border: 1px solid var(--neon-pink);
+    border-radius: 8px;
+    padding: 8px 14px;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+  }
+  .hud-score { font-family: var(--font-display); font-size: 18px; color: var(--neon-pink); text-shadow: 0 0 12px var(--neon-pink); }
+  .hud-streak { font-size: 10px; color: var(--yellow); margin-top: 2px; }
+  .hud-label { font-size: 8px; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
+  /* ===== EDGE CLASSIFICATION LEGEND ===== */
+  .edge-legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 10px;
+    font-size: 9px;
+  }
+  .edge-type-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 9px;
+    border: 1px solid;
+    font-family: var(--font-mono);
+  }
+  .edge-type-chip.tree { border-color: var(--neon-cyan); color: var(--neon-cyan); background: rgba(0,255,240,0.08); }
+  .edge-type-chip.back { border-color: var(--red); color: var(--red); background: rgba(255,0,60,0.08); }
+  .edge-type-chip.forward { border-color: #4488ff; color: #4488ff; background: rgba(68,136,255,0.08); }
+  .edge-type-chip.cross { border-color: #cc44ff; color: #cc44ff; background: rgba(204,68,255,0.08); }
+  #edge-counts { padding: 4px 10px 8px; font-size: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .ec-item { display: flex; align-items: center; gap: 4px; }
+  .ec-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  /* ===== AI GRAPH GENERATOR INPUT ===== */
+  #ai-gen-wrap {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding: 4px 10px;
+    border-top: 1px solid rgba(0,255,240,0.08);
+  }
+  #ai-gen-input {
+    flex: 1;
+    background: rgba(0,5,20,0.9);
+    border: 1px solid rgba(0,255,240,0.2);
+    color: var(--neon-cyan);
+    padding: 4px 8px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    border-radius: 3px;
+    outline: none;
+  }
+  #ai-gen-input::placeholder { color: var(--dim); }
+  #ai-gen-input:focus { border-color: var(--neon-pink); box-shadow: 0 0 8px rgba(255,0,170,0.3); }
+  #ai-gen-btn {
+    background: rgba(176,21,255,0.2);
+    border: 1px solid var(--neon-purple);
+    color: var(--neon-purple);
+    padding: 4px 10px;
+    font-size: 9px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.2s;
+  }
+  #ai-gen-btn:hover { background: rgba(176,21,255,0.35); box-shadow: 0 0 12px rgba(176,21,255,0.4); }
+  /* ===== BFS BATTLE MODE ===== */
+  #battle-wrap {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    background: var(--bg);
+    flex-direction: column;
+  }
+  #battle-wrap.active { display: flex; }
+  #battle-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    border-bottom: 1px solid rgba(0,255,240,0.2);
+    background: rgba(7,7,26,0.95);
+    flex-shrink: 0;
+  }
+  #battle-title { font-family: var(--font-display); font-size: 14px; color: var(--neon-pink); letter-spacing: 3px; }
+  #battle-close-btn {
+    padding: 5px 14px; border: 1px solid var(--red); color: var(--red);
+    background: rgba(255,0,60,0.1); border-radius: 4px; cursor: pointer;
+    font-family: var(--font-mono); font-size: 10px;
+  }
+  #battle-canvases { display: flex; flex: 1; overflow: hidden; }
+  .battle-side { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .battle-side-label {
+    text-align: center; padding: 6px; font-family: var(--font-display); font-size: 12px;
+    letter-spacing: 2px; border-bottom: 1px solid rgba(0,255,240,0.15);
+    flex-shrink: 0;
+  }
+  .battle-side-label.dfs { color: var(--neon-cyan); }
+  .battle-side-label.bfs { color: var(--neon-pink); }
+  .battle-canvas { width: 100%; flex: 1; display: block; }
+  #battle-divider { width: 2px; background: linear-gradient(180deg, var(--neon-cyan), var(--neon-pink)); flex-shrink: 0; }
+  #battle-stats {
+    padding: 8px 20px; border-top: 1px solid rgba(0,255,240,0.15);
+    background: rgba(7,7,26,0.9); display: flex; justify-content: space-around;
+    flex-shrink: 0; gap: 10px; flex-wrap: wrap;
+  }
+  .battle-stat-group { text-align: center; }
+  .battle-stat-label { font-size: 8px; color: var(--dim); letter-spacing: 1px; text-transform: uppercase; }
+  .battle-stat-vals { display: flex; gap: 20px; }
+  .battle-stat-val { font-family: var(--font-display); font-size: 18px; }
+  .battle-stat-val.dfs { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); }
+  .battle-stat-val.bfs { color: var(--neon-pink); text-shadow: 0 0 10px var(--neon-pink); }
+  #battle-play-btn {
+    padding: 6px 20px; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+    background: rgba(0,255,240,0.1); border-radius: 4px; cursor: pointer;
+    font-family: var(--font-display); font-size: 10px;
+  }
+  /* ===== DIFFICULTY SELECTOR ===== */
+  #difficulty-wrap { display: flex; gap: 4px; padding: 0 10px 4px; align-items: center; }
+  #difficulty-wrap span { font-size: 9px; color: var(--dim); letter-spacing: 1px; flex-shrink: 0; }
+  .diff-btn {
+    flex: 1; padding: 3px 6px; font-size: 9px; font-family: var(--font-mono);
+    border-radius: 3px; cursor: pointer; border: 1px solid rgba(0,255,240,0.15);
+    background: rgba(0,5,20,0.8); color: var(--dim); transition: all 0.2s;
+  }
+  .diff-btn.easy { border-color: var(--neon-green); }
+  .diff-btn.medium { border-color: var(--yellow); }
+  .diff-btn.hard { border-color: var(--red); }
+  .diff-btn.active.easy { background: rgba(0,255,159,0.15); color: var(--neon-green); box-shadow: 0 0 8px rgba(0,255,159,0.3); }
+  .diff-btn.active.medium { background: rgba(255,230,0,0.12); color: var(--yellow); box-shadow: 0 0 8px rgba(255,230,0,0.3); }
+  .diff-btn.active.hard { background: rgba(255,0,60,0.15); color: var(--red); box-shadow: 0 0 8px rgba(255,0,60,0.3); }
+  /* SOUND BAR */
+  #sound-bar { display: flex; align-items: center; gap: 6px; padding: 0 10px 6px; font-size: 9px; color: var(--dim); }
+  #vol-slider { flex: 1; accent-color: var(--neon-purple); height: 3px; }
+
+  .empty-msg {
+    color: var(--dim);
+    font-size: 10px;
+    padding: 4px 0;
+    font-style: italic;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="scanline"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="corner-tl"></div><div class="corner-tr"></div>
+  <canvas id="particles-canvas" style="position:absolute;inset:0;pointer-events:none;z-index:0;opacity:0.4"></canvas>
+  <div class="header-title">
+    <h1>DFS TRAVERSAL VISUALIZER</h1>
+    <div class="header-badge">⬡ DEPTH-FIRST SEARCH TRAVERSAL</div>
+  </div>
+  <div id="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1a1a5a;border:1px solid rgba(0,255,240,0.4)"></div>Unvisited</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ffe600;box-shadow:0 0 8px #ffe600"></div>Visiting</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#00ff9f;box-shadow:0 0 8px #00ff9f"></div>Visited</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff6600;box-shadow:0 0 8px #ff6600"></div>Backtrack</div>
+    <div class="legend-item" style="border-bottom:2px solid #00fff0;padding-bottom:1px">── Tree</div>
+    <div class="legend-item" style="border-bottom:2px solid #ff003c;padding-bottom:1px">╌ Back</div>
+    <div class="legend-item" style="border-bottom:2px solid #4488ff;padding-bottom:1px">── Fwd</div>
+    <div class="legend-item" style="border-bottom:2px solid #cc44ff;padding-bottom:1px">── Cross</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT -->
+  <div id="left-area">
+    <div id="graph-container">
+      <canvas id="graph-canvas"></canvas>
+      <div id="depth-bar-container">
+        <div id="depth-label">DEPTH</div>
+        <div id="depth-bar-bg"><div id="depth-bar-fill"></div></div>
+        <div id="depth-val">0</div>
+      </div>
+    </div>
+    <div id="presets-bar">
+      <span>PRESETS:</span>
+      <button class="preset-btn active" onclick="loadPreset('default')">Default Graph</button>
+      <button class="preset-btn" onclick="loadPreset('simple')">Simple</button>
+      <button class="preset-btn" onclick="loadPreset('dense')">Dense</button>
+      <button class="preset-btn" onclick="loadPreset('tree')">Tree-like</button>
+      <button class="preset-btn" onclick="loadPreset('linear')">Linear Chain</button>
+      <button class="preset-btn" onclick="loadPreset('star')">Star</button>
+    </div>
+    <div id="ai-gen-wrap">
+      <input id="ai-gen-input" type="text" placeholder="AI: e.g. 'tree height 3', 'dense cyclic 8 nodes'..." onkeydown="if(event.key==='Enter')aiGenerate()">
+      <button id="ai-gen-btn" onclick="aiGenerate()">✦ Generate</button>
+    </div>
+    <div id="tree-panel">
+      <div id="tree-panel-header">
+        <span>▷ DFS SPANNING TREE (builds in real-time)</span>
+        <span style="color:var(--green);font-size:9px">GREEN = tree edges only</span>
+      </div>
+      <canvas id="tree-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div id="right-panel">
+    <!-- Controls -->
+    <div class="panel-section">
+      <div class="panel-header">CONTROLS</div>
+      <div id="controls-section">
+        <div class="btn-row">
+          <button class="ctrl-btn" onclick="prevStep()">◀ Prev</button>
+          <button class="ctrl-btn" onclick="nextStep()">Next ▶</button>
+          <button class="ctrl-btn" id="play-btn" onclick="togglePlay()">▶ Auto Play</button>
+          <button class="ctrl-btn danger" onclick="resetAll()">↺ Reset</button>
+          <button class="ctrl-btn" onclick="newGraph()">⊞ New Graph</button>
+        </div>
+        <!-- Timeline scrubber -->
+        <div id="timeline-wrap">
+          <span style="font-size:9px;color:var(--dim)">⏮</span>
+          <input type="range" id="timeline-slider" min="0" max="0" value="0" oninput="jumpToStep(parseInt(this.value))">
+          <span style="font-size:9px;color:var(--dim)">⏭</span>
+          <span id="timeline-counter">0 / 0</span>
+        </div>
+        <!-- Mode buttons -->
+        <div class="mode-btn-row">
+          <button class="mode-btn" id="focus-btn" onclick="toggleFocusMode()">◎ Focus</button>
+          <button class="mode-btn" id="challenge-btn" onclick="toggleChallengeMode()">⚔ Challenge</button>
+          <button class="mode-btn" id="sound-btn" onclick="toggleSound()">🔊 Sound</button>
+          <button class="mode-btn" id="battle-btn" onclick="openBattleMode()">⚡ BFS vs DFS</button>
+        </div>
+        <!-- Difficulty -->
+        <div id="difficulty-wrap">
+          <span>DIFF:</span>
+          <button class="diff-btn easy active" onclick="setDifficulty('easy',this)">Easy</button>
+          <button class="diff-btn medium" onclick="setDifficulty('medium',this)">Medium</button>
+          <button class="diff-btn hard" onclick="setDifficulty('hard',this)">Hard</button>
+        </div>
+        <!-- Sound volume -->
+        <div id="sound-bar">
+          <span>🔇</span>
+          <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.4" oninput="setVolume(this.value)">
+          <span>🔊</span>
+        </div>
+        <div class="controls-row2">
+          <span class="speed-label">🐢</span>
+          <input type="range" id="speed-slider" min="1" max="10" value="5">
+          <span class="speed-label">⚡</span>
+          <select id="start-node-sel" onchange="setStartNode(this.value)"></select>
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="show-weights" checked onchange="drawGraph()"> Show edge weights
+        </label>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="panel-section">
+      <div class="panel-header">TRAVERSAL METRICS</div>
+      <div id="metrics-grid">
+        <div class="metric-cell"><div class="metric-label">Nodes Visited</div><div class="metric-val" id="m-visited">0</div></div>
+        <div class="metric-cell"><div class="metric-label">Steps Taken</div><div class="metric-val" id="m-steps">0</div></div>
+        <div class="metric-cell"><div class="metric-label">Current Depth</div><div class="metric-val" id="m-depth">0</div></div>
+        <div class="metric-cell"><div class="metric-label">Backtracks</div><div class="metric-val" id="m-backtracks">0</div></div>
+      </div>
+      <div id="step-box"><span class="step-num">Ready.</span> Click any node to set start, then press Next ▶ to begin DFS traversal.</div>
+      <div id="cycle-badge">⚠ Cycle Detected via back edge: <span id="cycle-text"></span></div>
+    </div>
+
+    <!-- Scroll area -->
+    <div id="right-scroll">
+
+      <!-- Edge Classification -->
+      <div class="panel-section">
+        <div class="panel-header">EDGE CLASSIFICATION</div>
+        <div class="edge-legend-row">
+          <span class="edge-type-chip tree">── Tree</span>
+          <span class="edge-type-chip back">╌ Back</span>
+          <span class="edge-type-chip forward">── Forward</span>
+          <span class="edge-type-chip cross">── Cross</span>
+        </div>
+        <div id="edge-counts">
+          <div class="ec-item"><div class="ec-dot" style="background:#00fff0"></div><span id="ec-tree" style="color:#00fff0">0 tree</span></div>
+          <div class="ec-item"><div class="ec-dot" style="background:#ff003c"></div><span id="ec-back" style="color:#ff003c">0 back</span></div>
+          <div class="ec-item"><div class="ec-dot" style="background:#4488ff"></div><span id="ec-fwd" style="color:#4488ff">0 fwd</span></div>
+          <div class="ec-item"><div class="ec-dot" style="background:#cc44ff"></div><span id="ec-cross" style="color:#cc44ff">0 cross</span></div>
+        </div>
+      </div>
+
+      <!-- Traversal order -->
+      <div class="panel-section">
+        <div class="panel-header">DFS TRAVERSAL ORDER</div>
+        <div id="traversal-order-display"><span class="empty-msg">No traversal yet...</span></div>
+      </div>
+
+      <!-- Stack -->
+      <div class="panel-section">
+        <div class="panel-header">DFS STACK <span style="color:var(--dim);font-size:8px">TOP → BOTTOM</span></div>
+        <div id="stack-container"><span class="empty-msg" style="padding:4px 10px">Stack is empty</span></div>
+      </div>
+
+      <!-- Current path -->
+      <div class="panel-section">
+        <div class="panel-header">ACTIVE RECURSION PATH</div>
+        <div id="current-path-display"><span class="empty-msg">–</span></div>
+      </div>
+
+      <!-- Pseudocode -->
+      <div class="panel-section">
+        <div class="panel-header">LIVE PSEUDOCODE</div>
+        <div id="pseudocode-panel">
+          <div class="pcode-line" id="pc0">DFS(node):</div>
+          <div class="pcode-line" id="pc1">  mark node as visited</div>
+          <div class="pcode-line" id="pc2">  add node to visited set</div>
+          <div class="pcode-line" id="pc3">  for each neighbor of node:</div>
+          <div class="pcode-line" id="pc4">    if neighbor not visited:</div>
+          <div class="pcode-line" id="pc5">      DFS(neighbor)  ← recurse</div>
+          <div class="pcode-line" id="pc6">    else: skip (back edge)</div>
+          <div class="pcode-line" id="pc7">  backtrack ← return</div>
+        </div>
+      </div>
+
+      <!-- Call stack sim -->
+      <div class="panel-section">
+        <div class="panel-header">CALL STACK SIMULATION</div>
+        <div id="call-stack-sim"><span class="empty-msg" style="padding:4px 10px">Empty</span></div>
+      </div>
+
+      <!-- Backtrack log -->
+      <div class="panel-section">
+        <div class="panel-header">BACKTRACKING LOG</div>
+        <div id="backtrack-log"><span class="empty-msg">No backtracks yet...</span></div>
+      </div>
+
+      <!-- Visited set -->
+      <div class="panel-section">
+        <div class="panel-header">VISITED SET</div>
+        <div id="visited-set-display"><span class="empty-msg">Empty</span></div>
+      </div>
+
+      <!-- Adjacency list -->
+      <div class="panel-section">
+        <div class="panel-header">ADJACENCY LIST</div>
+        <div id="adj-list-container"></div>
+      </div>
+
+      <!-- Timestamp table -->
+      <div class="panel-section">
+        <div class="panel-header">VISIT TIMESTAMP TABLE</div>
+        <div id="timestamp-table">
+          <div class="ts-row header">
+            <div class="ts-cell">Node</div>
+            <div class="ts-cell">Disc.</div>
+            <div class="ts-cell">Finish</div>
+            <div class="ts-cell">Depth</div>
+            <div class="ts-cell">Parent</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end right-scroll -->
+  </div><!-- end right-panel -->
+</div><!-- end main -->
+
+<!-- Footer -->
+<div id="footer">
+  <span>Sohit Narayan</span> | Data Structures | NIELIT Ropar Deemed to be University &nbsp;|&nbsp; Press <span>[P]</span> for Presentation Mode
+</div>
+
+<!-- Presentation overlay -->
+<div id="pres-overlay">
+  <div style="color:var(--accent);font-size:11px;letter-spacing:2px;margin-bottom:6px;font-family:var(--font-display)">STEP EXPLANATION</div>
+  <div id="pres-step-text" style="font-size:15px;color:var(--white);line-height:1.6"></div>
+</div>
+<div id="pres-nav">
+  <button class="pres-btn" onclick="prevStep()">◀ Prev</button>
+  <button class="pres-btn" onclick="togglePlay()">▶ Auto</button>
+  <button class="pres-btn" onclick="nextStep()">Next ▶</button>
+  <button class="pres-btn" onclick="togglePresentation()">✕ Exit</button>
+</div>
+
+<script>
+// ==================== GRAPH DATA ====================
+const PRESETS = {
+  default: {
+    nodes: ['A','B','C','D','E','F','G','H','I','J','K','L'],
+    edges: [
+      ['A','B',4],['A','C',2],['B','D',5],['B','E',3],
+      ['C','F',6],['C','G',1],['D','H',2],['E','I',4],
+      ['F','J',3],['G','K',5],['H','L',2],['I','J',1],
+      ['J','K',4],['K','L',3],['G','D',7],['E','F',2]
+    ]
+  },
+  simple: {
+    nodes: ['A','B','C','D','E','F'],
+    edges: [['A','B',1],['A','C',2],['B','D',3],['C','D',4],['D','E',2],['E','F',1],['C','F',5]]
+  },
+  dense: {
+    nodes: ['A','B','C','D','E','F','G','H'],
+    edges: [
+      ['A','B',1],['A','C',2],['A','D',3],['B','C',1],['B','E',2],
+      ['C','D',1],['C','F',2],['D','G',3],['E','F',1],['E','H',2],
+      ['F','G',1],['F','H',2],['G','H',1],['A','G',4],['B','H',3]
+    ]
+  },
+  tree: {
+    nodes: ['A','B','C','D','E','F','G','H','I','J','K'],
+    edges: [
+      ['A','B',1],['A','C',1],['B','D',1],['B','E',1],
+      ['C','F',1],['C','G',1],['D','H',1],['D','I',1],
+      ['E','J',1],['F','K',1]
+    ]
+  },
+  linear: {
+    nodes: ['A','B','C','D','E','F','G'],
+    edges: [['A','B',1],['B','C',1],['C','D',1],['D','E',1],['E','F',1],['F','G',1],['G','A',1]]
+  },
+  star: {
+    nodes: ['A','B','C','D','E','F','G'],
+    edges: [['A','B',1],['A','C',1],['A','D',1],['A','E',1],['A','F',1],['A','G',1],['B','C',2],['D','E',2]]
+  }
+};
+
+let graph = { nodes: [], edges: [] };
+let nodePos = {};
+let currentPreset = 'default';
+let startNode = 'A';
+let dfsSteps = [];
+let currentStep = -1;
+let playing = false;
+let playInterval = null;
+let showWeights = true;
+let animCursor = null;
+let animFrame = null;
+let presentationMode = false;
+let timer = 0;
+
+// State per step
+let stateHistory = [];
+
+// ==================== INIT ====================
+function init() {
+  loadPreset('default');
+  document.addEventListener('keydown', e => {
+    if (e.key === 'p' || e.key === 'P') togglePresentation();
+    if (e.key === 'ArrowRight') nextStep();
+    if (e.key === 'ArrowLeft') prevStep();
+  });
+  window.addEventListener('resize', () => { resizeCanvases(); drawGraph(); drawTree(); });
+}
+
+function resizeCanvases() {
+  const gc = document.getElementById('graph-canvas');
+  const tc = document.getElementById('tree-canvas');
+  const container = document.getElementById('graph-container');
+  const treePanel = document.getElementById('tree-panel');
+  gc.width = container.clientWidth;
+  gc.height = container.clientHeight;
+  tc.width = treePanel.clientWidth;
+  tc.height = treePanel.clientHeight - 22;
+}
+
+function loadPreset(name) {
+  currentPreset = name;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  event && event.target && event.target.classList.add('active');
+
+  const p = PRESETS[name];
+  graph.nodes = [...p.nodes];
+  graph.edges = p.edges.map(e => ({ from: e[0], to: e[1], w: e[2] }));
+
+  computeLayout();
+  resetAll();
+  populateStartNodeSel();
+  renderAdjList(null, {});
+  renderTimestampTable([]);
+  resizeCanvases();
+  setTimeout(() => { drawGraph(); drawTree(); }, 50);
+}
+
+function computeLayout() {
+  const n = graph.nodes.length;
+  const layouts = {
+    default: () => {
+      const positions = {
+        A:[0.15,0.15], B:[0.35,0.08], C:[0.15,0.42], D:[0.55,0.12],
+        E:[0.55,0.32], F:[0.22,0.65], G:[0.38,0.55], H:[0.70,0.18],
+        I:[0.72,0.42], J:[0.42,0.78], K:[0.60,0.68], L:[0.82,0.62]
+      };
+      return positions;
+    },
+    simple: () => ({ A:[0.2,0.3], B:[0.4,0.12], C:[0.4,0.5], D:[0.6,0.3], E:[0.8,0.5], F:[0.7,0.75] }),
+    dense: () => {
+      const pos = {}; const nodes = graph.nodes;
+      nodes.forEach((n,i) => { const a = (i/nodes.length)*2*Math.PI; pos[n]=[0.5+0.35*Math.cos(a), 0.5+0.38*Math.sin(a)]; });
+      return pos;
+    },
+    tree: () => {
+      return {A:[0.5,0.1],B:[0.25,0.28],C:[0.75,0.28],D:[0.12,0.52],E:[0.38,0.52],F:[0.62,0.52],G:[0.88,0.52],H:[0.06,0.78],I:[0.22,0.78],J:[0.38,0.78],K:[0.62,0.78]};
+    },
+    linear: () => {
+      const pos = {}; const nodes = graph.nodes;
+      nodes.forEach((n,i) => { pos[n] = [0.12 + (i/(nodes.length-1))*0.76, 0.35 + (i%2)*0.2]; });
+      return pos;
+    },
+    star: () => {
+      const pos = {A:[0.5,0.45]}; const nodes = graph.nodes.filter(x=>x!=='A');
+      nodes.forEach((n,i) => { const a=(i/nodes.length)*2*Math.PI; pos[n]=[0.5+0.35*Math.cos(a),0.45+0.38*Math.sin(a)]; });
+      return pos;
+    }
+  };
+  const layoutFn = layouts[currentPreset] || layouts.dense;
+  const rawPos = layoutFn();
+  nodePos = {};
+  graph.nodes.forEach(n => { nodePos[n] = rawPos[n] || [0.5,0.5]; });
+}
+
+function newGraph() {
+  // Generate a random connected graph each time
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const nodeCount = Math.floor(Math.random() * 7) + 6; // 6–12 nodes
+  const nodes = letters.slice(0, nodeCount).split('');
+
+  // Generate random positions with min-distance enforcement
+  const positions = {};
+  const minDist = 0.22;
+  const margin = 0.12;
+  for (const n of nodes) {
+    let x, y, tries = 0;
+    do {
+      x = margin + Math.random() * (1 - 2 * margin);
+      y = margin + Math.random() * (1 - 2 * margin);
+      tries++;
+    } while (
+      tries < 60 &&
+      Object.values(positions).some(p => Math.hypot(p[0]-x, p[1]-y) < minDist)
+    );
+    positions[n] = [x, y];
+  }
+
+  // Build a random spanning tree to guarantee connectivity
+  const shuffled = [...nodes].sort(() => Math.random() - 0.5);
+  const edges = [];
+  const edgeSet = new Set();
+  for (let i = 1; i < shuffled.length; i++) {
+    const from = shuffled[Math.floor(Math.random() * i)];
+    const to = shuffled[i];
+    const key = [from, to].sort().join('-');
+    if (!edgeSet.has(key)) {
+      edgeSet.add(key);
+      edges.push([from, to, Math.floor(Math.random() * 9) + 1]);
+    }
+  }
+
+  // Add extra random edges (density: ~40% of possible extra edges)
+  const extraTarget = Math.floor(nodeCount * 0.7);
+  let attempts = 0;
+  while (edges.length < nodeCount + extraTarget && attempts < 200) {
+    attempts++;
+    const a = nodes[Math.floor(Math.random() * nodes.length)];
+    const b = nodes[Math.floor(Math.random() * nodes.length)];
+    if (a === b) continue;
+    const key = [a, b].sort().join('-');
+    if (!edgeSet.has(key)) {
+      edgeSet.add(key);
+      edges.push([a, b, Math.floor(Math.random() * 9) + 1]);
+    }
+  }
+
+  // Apply to graph
+  graph.nodes = nodes;
+  graph.edges = edges.map(e => ({ from: e[0], to: e[1], w: e[2] }));
+  nodePos = positions;
+
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  resetAll();
+  populateStartNodeSel();
+  renderAdjList(null, {});
+  renderTimestampTable([]);
+  resizeCanvases();
+  setTimeout(() => { drawGraph(); drawTree(); }, 50);
+}
+
+function populateStartNodeSel() {
+  const sel = document.getElementById('start-node-sel');
+  sel.innerHTML = graph.nodes.map(n => `<option value="${n}">${n}</option>`).join('');
+  startNode = graph.nodes[0];
+  sel.value = startNode;
+}
+
+function setStartNode(v) {
+  startNode = v;
+  resetAll();
+}
+
+// ==================== CANVAS HELPERS ====================
+function getCanvas() { return document.getElementById('graph-canvas'); }
+function getCtx() { return getCanvas().getContext('2d'); }
+function getW() { return getCanvas().width; }
+function getH() { return getCanvas().height; }
+
+function nodeXY(n) {
+  const p = nodePos[n];
+  if (!p) return [getW()/2, getH()/2];
+  return [p[0]*getW(), p[1]*getH()];
+}
+function nodeRadius() { return Math.min(getW(), getH()) * 0.038; }
+
+// ==================== DRAW GRAPH ====================
+function drawGraph(state) {
+  const ctx = getCtx();
+  const W = getW(), H = getH();
+  const r = nodeRadius();
+  ctx.clearRect(0, 0, W, H);
+
+  // Deep cyberpunk grid background
+  ctx.strokeStyle = 'rgba(0,255,240,0.04)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  ctx.strokeStyle = 'rgba(176,21,255,0.03)';
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  // Subtle vignette
+  const vg = ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.85);
+  vg.addColorStop(0, 'transparent');
+  vg.addColorStop(1, 'rgba(2,2,9,0.6)');
+  ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+
+  const visited = state ? state.visited : new Set();
+  const currentNode = state ? state.currentNode : null;
+  const path = state ? state.path : [];
+  const treeEdges = state ? state.treeEdges : [];
+  const backEdges = state ? state.backEdges : [];
+  const backtracking = state ? state.backtracking : new Set();
+  const sw = document.getElementById('show-weights').checked;
+
+  // Draw edges with focus mode support
+  graph.edges.forEach(e => {
+    const [x1,y1] = nodeXY(e.from);
+    const [x2,y2] = nodeXY(e.to);
+    const isTree = treeEdges.some(te => (te.from===e.from&&te.to===e.to)||(te.from===e.to&&te.to===e.from));
+    const isBack = backEdges.some(be => (be.from===e.from&&be.to===e.to)||(be.from===e.to&&be.to===e.from));
+    // Focus mode: dim non-path edges
+    const isPathEdge = path && path.length > 1 && path.some((n,i) => i>0 && ((path[i-1]===e.from&&n===e.to)||(path[i-1]===e.to&&n===e.from)));
+    const dimEdge = focusMode && !isTree && !isPathEdge && !isBack;
+
+    ctx.save();
+    ctx.globalAlpha = dimEdge ? 0.08 : 1;
+    ctx.lineWidth = isTree ? 3 : 1.2;
+
+    if (isTree) {
+      ctx.strokeStyle = '#00fff0';
+      ctx.shadowColor = '#00fff0';
+      ctx.shadowBlur = 18;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([]);
+    } else if (isBack) {
+      ctx.strokeStyle = '#ff003c';
+      ctx.setLineDash([5,4]);
+      ctx.shadowColor = '#ff003c';
+      ctx.shadowBlur = 10;
+    } else {
+      ctx.strokeStyle = 'rgba(0,255,240,0.18)';
+      ctx.setLineDash([4,4]);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
+    ctx.stroke();
+    ctx.restore();
+
+    // Arrow on tree edges
+    if (isTree) {
+      const angle = Math.atan2(y2-y1, x2-x1);
+      const mx = (x1+x2)/2, my = (y1+y2)/2;
+      ctx.save();
+      ctx.fillStyle = '#00fff0';
+      ctx.shadowColor = '#00fff0';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.translate(mx, my);
+      ctx.rotate(angle);
+      ctx.moveTo(0,-5); ctx.lineTo(10,0); ctx.lineTo(0,5);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    // Weight
+    if (sw) {
+      const mx = (x1+x2)/2 + (y2-y1)*0.07;
+      const my = (y1+y2)/2 - (x2-x1)*0.07;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,255,240,0.55)';
+      ctx.font = `${Math.max(9,r*0.5)}px JetBrains Mono`;
+      ctx.textAlign = 'center';
+      ctx.fillText(e.w, mx, my);
+      ctx.restore();
+    }
+  });
+
+  // Traversal path animation on graph
+  if (state && path.length > 1) {
+    ctx.save();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,255,231,0.35)';
+    ctx.shadowColor = '#00ffe7';
+    ctx.shadowBlur = 15;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    for (let i = 0; i < path.length; i++) {
+      const [x,y] = nodeXY(path[i]);
+      if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Draw nodes
+  graph.nodes.forEach(n => {
+    const [x,y] = nodeXY(n);
+    let fillColor = '#12123a';
+    let strokeColor = 'rgba(0,255,240,0.35)';
+    let glow = null;
+    let textColor = '#a0a8cc';
+
+    if (n === currentNode) {
+      fillColor = 'rgba(40,30,0,0.95)';
+      strokeColor = '#ffe600';
+      glow = '#ffe600';
+      textColor = '#ffe600';
+    } else if (backtracking.has(n)) {
+      fillColor = 'rgba(40,10,0,0.95)';
+      strokeColor = '#ff6600';
+      glow = '#ff6600';
+      textColor = '#ff6600';
+    } else if (visited.has(n)) {
+      fillColor = 'rgba(0,40,30,0.95)';
+      strokeColor = '#00ff9f';
+      glow = '#00ff9f';
+      textColor = '#00ff9f';
+    }
+
+    ctx.save();
+    if (glow) {
+      ctx.shadowColor = glow;
+      ctx.shadowBlur = n === currentNode ? 40 : 20;
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = n === currentNode ? 3 : 2;
+    ctx.stroke();
+
+    // Double pulsing rings on active node
+    if (n === currentNode) {
+      const pulse = Math.sin(Date.now()/180);
+      ctx.beginPath();
+      ctx.arc(x, y, r + 8 + pulse*4, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,230,0,0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, y, r + 16 + pulse*6, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,230,0,0.2)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = textColor;
+    ctx.font = `bold ${Math.max(11,r*0.65)}px Orbitron`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(n, x, y);
+    ctx.restore();
+  });
+
+  // Start node indicator
+  if (!state || !state.currentNode) {
+    const [x,y] = nodeXY(startNode);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,255,231,0.6)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    ctx.arc(x, y, r+8, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(0,255,231,0.7)';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('START', x, y - r - 14);
+    ctx.restore();
+  }
+
+  // Click handler on canvas
+  getCanvas().onclick = handleCanvasClick;
+}
+
+function handleCanvasClick(e) {
+  if (dfsSteps.length > 0 && currentStep > -1) return;
+  const rect = getCanvas().getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (getCanvas().width / rect.width);
+  const my = (e.clientY - rect.top) * (getCanvas().height / rect.height);
+  const r = nodeRadius();
+  for (const n of graph.nodes) {
+    const [x,y] = nodeXY(n);
+    if (Math.hypot(mx-x, my-y) < r+5) {
+      startNode = n;
+      document.getElementById('start-node-sel').value = n;
+      resetAll();
+      return;
+    }
+  }
+}
+
+// ==================== DFS STEP GENERATION ====================
+function buildDFSSteps() {
+  dfsSteps = [];
+  const visited = new Set();
+  const treeEdges = [];
+  const backEdges = [];
+  const path = [];
+  const callStack = [];
+  let discoverTime = 0;
+  const timestamps = {};
+  graph.nodes.forEach(n => { timestamps[n] = { disc: -1, finish: -1, depth: -1, parent: '—' }; });
+
+  function addStep(type, node, extra={}) {
+    dfsSteps.push({
+      type,
+      node,
+      visited: new Set(visited),
+      currentNode: node,
+      path: [...path],
+      treeEdges: treeEdges.map(e=>({...e})),
+      backEdges: backEdges.map(e=>({...e})),
+      callStack: callStack.map(f=>({...f})),
+      backtracking: new Set(extra.backtracking||[]),
+      timestamps: JSON.parse(JSON.stringify(timestamps)),
+      extra
+    });
+  }
+
+  function dfs(node, depth, parent) {
+    if (visited.has(node)) return;
+    visited.add(node);
+    discoverTime++;
+    timestamps[node].disc = discoverTime;
+    timestamps[node].depth = depth;
+    timestamps[node].parent = parent || '—';
+    path.push(node);
+    callStack.unshift({ node, depth });
+
+    addStep('visit', node, { depth, parent, pcodeLine: [1,2] });
+
+    const neighbors = getNeighbors(node);
+    for (const nb of neighbors) {
+      if (!visited.has(nb)) {
+        treeEdges.push({ from: node, to: nb });
+        addStep('explore', node, { neighbor: nb, depth, pcodeLine: [3,4,5] });
+        dfs(nb, depth+1, node);
+
+        // Backtrack
+        callStack.shift();
+        callStack.unshift({ node, depth });
+        path.pop();
+        path.push(node);
+        addStep('backtrack', node, {
+          from: nb,
+          depth,
+          backtracking: new Set([nb]),
+          pcodeLine: [7]
+        });
+        path.push(nb);
+        path.pop();
+      } else {
+        // Back edge
+        if (!treeEdges.some(e => (e.from===node&&e.to===nb)||(e.from===nb&&e.to===node))) {
+          backEdges.push({ from: node, to: nb });
+        }
+        addStep('backedge', node, { neighbor: nb, depth, pcodeLine: [6] });
+      }
+    }
+
+    discoverTime++;
+    timestamps[node].finish = discoverTime;
+    addStep('done', node, { depth, pcodeLine: [7] });
+    callStack.shift();
+    if (path.length > 0 && path[path.length-1] === node) path.pop();
+  }
+
+  dfs(startNode, 0, null);
+
+  // Handle disconnected nodes
+  for (const n of graph.nodes) {
+    if (!visited.has(n)) {
+      dfs(n, 0, null);
+    }
+  }
+
+  addStep('complete', null, { pcodeLine: [] });
+}
+
+function getNeighbors(node) {
+  const nb = [];
+  graph.edges.forEach(e => {
+    if (e.from === node && !nb.includes(e.to)) nb.push(e.to);
+    if (e.to === node && !nb.includes(e.from)) nb.push(e.from);
+  });
+  return nb;
+}
+
+// ==================== STEP RENDERING ====================
+let visitOrder = [];
+let backtrackLog = [];
+let visitedChips = [];
+
+function resetAll() {
+  stopPlay();
+  dfsSteps = [];
+  currentStep = -1;
+  visitOrder = [];
+  backtrackLog = [];
+  visitedChips = [];
+
+  updateMetrics(0,0,0,0);
+  updateStepBox('Ready. Click any node to set start, then press <strong>Next ▶</strong> to begin DFS traversal.');
+  document.getElementById('traversal-order-display').innerHTML = '<span class="empty-msg">No traversal yet...</span>';
+  document.getElementById('stack-container').innerHTML = '<span class="empty-msg" style="padding:4px 10px">Stack is empty</span>';
+  document.getElementById('current-path-display').innerHTML = '<span class="empty-msg">–</span>';
+  document.getElementById('call-stack-sim').innerHTML = '<span class="empty-msg" style="padding:4px 10px">Empty</span>';
+  document.getElementById('backtrack-log').innerHTML = '<span class="empty-msg">No backtracks yet...</span>';
+  document.getElementById('visited-set-display').innerHTML = '<span class="empty-msg">Empty</span>';
+  document.getElementById('cycle-badge').style.display = 'none';
+  updateDepthBar(0, 0);
+  highlightPcode([]);
+  renderAdjList(null, {});
+  renderTimestampTable([]);
+
+  resizeCanvases();
+  drawGraph(null);
+  drawTree(null);
+  document.getElementById('pres-step-text').textContent = 'Press Next to begin DFS traversal.';
+}
+
+function applyStep(stepIdx) {
+  if (stepIdx < 0 || stepIdx >= dfsSteps.length) return;
+  const s = dfsSteps[stepIdx];
+  const stepNum = stepIdx + 1;
+
+  document.getElementById('m-steps').textContent = stepNum;
+  document.getElementById('m-visited').textContent = s.visited.size;
+
+  // Depth
+  const depth = s.extra.depth !== undefined ? s.extra.depth : 0;
+  document.getElementById('m-depth').textContent = depth;
+  updateDepthBar(depth, 12);
+
+  // Backtracks count
+  const btCount = dfsSteps.slice(0, stepIdx+1).filter(x=>x.type==='backtrack').length;
+  document.getElementById('m-backtracks').textContent = btCount;
+
+  // Step explanation
+  let msg = '';
+  if (s.type === 'visit') {
+    msg = `<span class="step-num">Step ${stepNum}:</span> 🔵 Visiting node <b style="color:var(--yellow)">${s.node}</b>. Marked as in-progress. Disc time = ${s.timestamps && s.timestamps[s.node] ? s.timestamps[s.node].disc : '?'}. Depth = ${depth}.`;
+    playSound('visit');
+  } else if (s.type === 'explore') {
+    const nbrs = getNeighbors(s.node);
+    const rank = nbrs.indexOf(s.extra.neighbor) + 1;
+    msg = `<span class="step-num">Step ${stepNum}:</span> At <b style="color:var(--yellow)">${s.node}</b> → exploring neighbor <b style="color:var(--neon-cyan)">${s.extra.neighbor}</b> <span style="color:var(--dim);font-size:10px">(neighbor #${rank} in list, unvisited)</span>. Recursing into DFS(${s.extra.neighbor}).`;
+  } else if (s.type === 'backedge') {
+    msg = `<span class="step-num">Step ${stepNum}:</span> ⚠ Back edge found — <b style="color:var(--red)">${s.node}→${s.extra.neighbor}</b>. Neighbor is already visited = ancestor in DFS tree. <span style="color:var(--orange)">Cycle indicator!</span>`;
+    document.getElementById('cycle-badge').style.display = 'block';
+    document.getElementById('cycle-text').textContent = `${s.node} → ${s.extra.neighbor}`;
+    playSound('backedge');
+  } else if (s.type === 'backtrack') {
+    msg = `<span class="step-num">Step ${stepNum}:</span> <span style="color:var(--orange)">↩ Backtracking</span> — All neighbors of <b style="color:var(--orange)">${s.extra.from}</b> explored. Returning to parent <b style="color:var(--yellow)">${s.node}</b>.`;
+    playSound('backtrack');
+    if (backtrackLog.length === 0 || backtrackLog[backtrackLog.length-1] !== `${s.extra.from}→${s.node}`) {
+      backtrackLog.push(`${s.extra.from}→${s.node}`);
+      const log = document.getElementById('backtrack-log');
+      if (log.querySelector('.empty-msg')) log.innerHTML = '';
+      const entry = document.createElement('div');
+      entry.className = 'backtrack-entry';
+      entry.innerHTML = `↩ Backtracked from <b style="color:var(--orange)">${s.extra.from}</b> to <b>${s.node}</b>`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+  } else if (s.type === 'done') {
+    msg = `<span class="step-num">Step ${stepNum}:</span> ✅ Node <b style="color:var(--neon-green)">${s.node}</b> fully explored. Finish time = ${s.timestamps && s.timestamps[s.node] ? s.timestamps[s.node].finish : '?'}. All subtrees visited.`;
+  } else if (s.type === 'complete') {
+    msg = `<span class="step-num">✓ DFS Complete!</span> All <b style="color:var(--neon-cyan)">${s.visited.size}</b> reachable nodes visited. Traversal finished in ${stepNum} steps.`;
+    playSound('complete');
+  }
+  updateStepBox(msg);
+  document.getElementById('pres-step-text').innerHTML = msg;
+
+  // Traversal order: add new visits
+  if ((s.type === 'visit') && !visitOrder.includes(s.node)) {
+    visitOrder.push(s.node);
+    renderTraversalOrder(visitOrder);
+  }
+
+  // Visited chips
+  const newVisited = s.type === 'done' ? s.node : null;
+  if (newVisited && !visitedChips.includes(newVisited)) {
+    visitedChips.push(newVisited);
+    renderVisitedSet(visitedChips);
+  }
+
+  // Stack
+  renderStack(s.callStack);
+
+  // Current path
+  renderPath(s.path);
+
+  // Pseudocode highlight
+  highlightPcode(s.extra.pcodeLine || []);
+
+  // Call stack sim
+  renderCallStack(s.callStack);
+
+  // Adjacency list
+  renderAdjList(s.currentNode, s.visited);
+
+  // Timestamp table
+  renderTimestampTable(s.timestamps);
+
+  // Update edge counts panel
+  if (s.treeEdges) document.getElementById('ec-tree').textContent = s.treeEdges.length + ' tree';
+  if (s.backEdges) document.getElementById('ec-back').textContent = s.backEdges.length + ' back';
+  // Draw graph and tree
+  drawGraph(s);
+  drawTree(s);
+}
+
+function renderTraversalOrder(order) {
+  const el = document.getElementById('traversal-order-display');
+  el.innerHTML = '';
+  order.forEach((n,i) => {
+    if (i > 0) {
+      const arr = document.createElement('span');
+      arr.className = 'trav-arrow';
+      arr.textContent = '→';
+      el.appendChild(arr);
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'trav-node';
+    wrap.innerHTML = `<div class="trav-node-letter">${n}</div><div class="trav-node-num">${ordinal(i+1)}</div>`;
+    el.appendChild(wrap);
+  });
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'], v = n%100;
+  return n+(s[(v-20)%10]||s[v]||s[0]);
+}
+
+function renderStack(callStack) {
+  const el = document.getElementById('stack-container');
+  if (!callStack || callStack.length === 0) {
+    el.innerHTML = '<span class="empty-msg" style="padding:4px 10px">Stack is empty</span>';
+    return;
+  }
+  el.innerHTML = '';
+  callStack.forEach((f, i) => {
+    const frame = document.createElement('div');
+    frame.className = 'stack-frame' + (i===0?' top-frame':'');
+    frame.innerHTML = `
+      <div class="stack-frame-node">${f.node}</div>
+      <div class="stack-frame-info">dfs(${f.node})</div>
+      <div class="stack-frame-depth">depth=${f.depth}</div>
+      ${i===0?'<span style="font-size:8px;color:var(--yellow)">← TOP</span>':''}
+    `;
+    el.appendChild(frame);
+  });
+}
+
+function renderPath(path) {
+  const el = document.getElementById('current-path-display');
+  if (!path || path.length === 0) {
+    el.innerHTML = '<span class="empty-msg">–</span>';
+    return;
+  }
+  el.innerHTML = path.map((n,i) =>
+    `${i>0?'<span class="path-arrow">→</span>':''}<span class="path-node">${n}</span>`
+  ).join('');
+}
+
+function renderVisitedSet(chips) {
+  const el = document.getElementById('visited-set-display');
+  if (!chips || chips.length === 0) {
+    el.innerHTML = '<span class="empty-msg">Empty</span>';
+    return;
+  }
+  el.innerHTML = chips.map(n => `<div class="visited-chip">${n}</div>`).join('');
+}
+
+function highlightPcode(lines) {
+  for (let i = 0; i < 8; i++) {
+    const el = document.getElementById('pc'+i);
+    if (el) el.classList.remove('active');
+  }
+  (lines||[]).forEach(l => {
+    const el = document.getElementById('pc'+l);
+    if (el) el.classList.add('active');
+  });
+}
+
+function renderCallStack(callStack) {
+  const el = document.getElementById('call-stack-sim');
+  if (!callStack || callStack.length === 0) {
+    el.innerHTML = '<span class="empty-msg" style="padding:4px 10px">Empty</span>';
+    return;
+  }
+  el.innerHTML = callStack.map((f,i) => `
+    <div class="call-frame ${i===0?'call-top':''}">
+      <span>dfs(${f.node}) depth=${f.depth}</span>
+      ${i===0?'<span class="call-frame-tag">↑ TOP</span>':''}
+    </div>
+  `).join('');
+}
+
+function renderAdjList(currentNode, visited) {
+  const el = document.getElementById('adj-list-container');
+  el.innerHTML = '';
+  graph.nodes.forEach(n => {
+    const neighbors = getNeighbors(n);
+    const row = document.createElement('div');
+    row.className = 'adj-row' + (n === currentNode ? ' current' : '');
+    const neighborsHtml = neighbors.map(nb => {
+      let cls = 'adj-neighbor';
+      if (visited && visited.has(nb)) cls += ' visited';
+      if (nb === currentNode) cls += ' current-node';
+      return `<span class="${cls}">${nb}</span>`;
+    }).join(' ');
+    row.innerHTML = `<span class="adj-node-label">${n}</span><span class="adj-colon">:</span>${neighborsHtml}`;
+    el.appendChild(row);
+  });
+}
+
+function renderTimestampTable(timestamps) {
+  const el = document.getElementById('timestamp-table');
+  // Remove all rows except header
+  while (el.children.length > 1) el.removeChild(el.lastChild);
+
+  graph.nodes.forEach(n => {
+    const t = timestamps[n] || { disc: -1, finish: -1, depth: -1, parent: '—' };
+    const row = document.createElement('div');
+    row.className = 'ts-row' + (t.disc > 0 && t.finish < 0 ? ' active-row' : '') + (t.finish > 0 ? ' done-row' : '');
+    row.innerHTML = `
+      <div class="ts-cell" style="color:var(--yellow);font-weight:700">${n}</div>
+      <div class="ts-cell">${t.disc > 0 ? t.disc : '–'}</div>
+      <div class="ts-cell">${t.finish > 0 ? t.finish : '–'}</div>
+      <div class="ts-cell">${t.depth >= 0 ? t.depth : '–'}</div>
+      <div class="ts-cell">${t.parent || '—'}</div>
+    `;
+    el.appendChild(row);
+  });
+}
+
+function updateMetrics(visited, steps, depth, backtracks) {
+  document.getElementById('m-visited').textContent = visited;
+  document.getElementById('m-steps').textContent = steps;
+  document.getElementById('m-depth').textContent = depth;
+  document.getElementById('m-backtracks').textContent = backtracks;
+}
+
+function updateStepBox(html) {
+  document.getElementById('step-box').innerHTML = html;
+}
+
+function updateDepthBar(d, maxD) {
+  const pct = maxD > 0 ? Math.min(100, (d/maxD)*100) : 0;
+  const fill = document.getElementById('depth-bar-fill');
+  fill.style.height = pct + '%';
+  fill.style.background = pct < 40 ? '#00ff88' : pct < 70 ? '#ffd700' : '#ff3355';
+  document.getElementById('depth-val').textContent = d;
+}
+
+// ==================== TREE CANVAS ====================
+function drawTree(state) {
+  const tc = document.getElementById('tree-canvas');
+  const ctx = tc.getContext('2d');
+  const W = tc.width, H = tc.height;
+  ctx.clearRect(0,0,W,H);
+
+  if (!state || !state.treeEdges || state.treeEdges.length === 0) {
+    ctx.fillStyle = 'rgba(102,102,136,0.4)';
+    ctx.font = '10px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('DFS Tree will build here as traversal progresses', W/2, H/2);
+    return;
+  }
+
+  // Build tree node positions
+  const treeNodes = new Set();
+  state.treeEdges.forEach(e => { treeNodes.add(e.from); treeNodes.add(e.to); });
+  if (state.visited) state.visited.forEach(n => treeNodes.add(n));
+
+  // Simple layout: use graph node positions scaled to tree canvas
+  const r = Math.min(W,H)*0.055;
+  const scale = 0.85;
+
+  // Draw tree edges
+  state.treeEdges.forEach(e => {
+    const sp = nodePos[e.from], ep = nodePos[e.to];
+    if (!sp || !ep) return;
+    const x1 = sp[0]*W*scale + W*0.075, y1 = sp[1]*H*scale + H*0.05;
+    const x2 = ep[0]*W*scale + W*0.075, y2 = ep[1]*H*scale + H*0.05;
+    ctx.save();
+    ctx.strokeStyle = '#00fff0';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = '#00fff0';
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // Draw tree nodes
+  treeNodes.forEach(n => {
+    const p = nodePos[n];
+    if (!p) return;
+    const x = p[0]*W*scale + W*0.075, y = p[1]*H*scale + H*0.05;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2);
+    const isVisited = state.visited && state.visited.has(n);
+    ctx.fillStyle = isVisited ? 'rgba(0,60,40,0.9)' : 'rgba(10,10,35,0.9)';
+    ctx.fill();
+    ctx.strokeStyle = isVisited ? '#00fff0' : 'rgba(0,255,240,0.2)';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = isVisited ? '#00fff0' : 'transparent';
+    ctx.shadowBlur = isVisited ? 14 : 0;
+    ctx.stroke();
+    ctx.fillStyle = isVisited ? '#00fff0' : '#5a5a8a';
+    ctx.font = `bold ${Math.max(8,r*0.75)}px Orbitron`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(n, x, y);
+    ctx.restore();
+  });
+}
+
+// ==================== NAVIGATION ====================
+function nextStep() {
+  if (dfsSteps.length === 0) {
+    buildDFSSteps();
+    visitOrder = [];
+    backtrackLog = [];
+    visitedChips = [];
+    document.getElementById('backtrack-log').innerHTML = '<span class="empty-msg">No backtracks yet...</span>';
+    document.getElementById('cycle-badge').style.display = 'none';
+    // Set up timeline
+    const sl = document.getElementById('timeline-slider');
+    sl.max = dfsSteps.length - 1;
+  }
+  if (currentStep < dfsSteps.length - 1) {
+    currentStep++;
+    applyStep(currentStep);
+    updateTimeline();
+    // Challenge mode: pause on 'explore' steps to quiz user
+    if (challengeMode && dfsSteps[currentStep]) {
+      const s = dfsSteps[currentStep];
+      if (s.type === 'explore' && s.extra.neighbor) {
+        stopPlay();
+        setTimeout(() => showQuiz(s.node, s.extra.neighbor, getNeighbors(s.node)), 300);
+        return;
+      }
+    }
+  }
+}
+
+function prevStep() {
+  if (currentStep <= 0) return;
+  const target = currentStep - 1;
+  dfsSteps = [];
+  visitOrder = [];
+  backtrackLog = [];
+  visitedChips = [];
+  document.getElementById('backtrack-log').innerHTML = '<span class="empty-msg">No backtracks yet...</span>';
+  document.getElementById('cycle-badge').style.display = 'none';
+  buildDFSSteps();
+  currentStep = -1;
+  for (let i = 0; i <= target; i++) {
+    currentStep = i;
+    if (i < target) {
+      const s = dfsSteps[i];
+      if ((s.type === 'visit') && !visitOrder.includes(s.node)) visitOrder.push(s.node);
+      if (s.type === 'done' && !visitedChips.includes(s.node)) visitedChips.push(s.node);
+      if (s.type === 'backtrack') backtrackLog.push(`${s.extra.from}→${s.node}`);
+    }
+  }
+  applyStep(target);
+  updateTimeline();
+}
+
+function togglePlay() {
+  if (playing) {
+    stopPlay();
+  } else {
+    playing = true;
+    document.getElementById('play-btn').textContent = '⏸ Pause';
+    document.getElementById('play-btn').classList.add('active');
+    autoPlay();
+  }
+}
+
+function autoPlay() {
+  if (!playing) return;
+  const speed = parseInt(document.getElementById('speed-slider').value);
+  const delay = Math.round(1600 - speed * 130);
+  nextStep();
+  if (currentStep >= dfsSteps.length - 1) {
+    stopPlay();
+    return;
+  }
+  playInterval = setTimeout(autoPlay, delay);
+}
+
+function stopPlay() {
+  playing = false;
+  clearTimeout(playInterval);
+  document.getElementById('play-btn').textContent = '▶ Auto Play';
+  document.getElementById('play-btn').classList.remove('active');
+}
+
+// ==================== PRESENTATION MODE ====================
+function togglePresentation() {
+  presentationMode = !presentationMode;
+  document.body.classList.toggle('presentation', presentationMode);
+  document.getElementById('pres-overlay').style.display = presentationMode ? 'block' : 'none';
+  setTimeout(() => { resizeCanvases(); drawGraph(currentStep>=0?dfsSteps[currentStep]:null); }, 100);
+}
+
+// ==================== PULSE ANIMATION ====================
+function animateCanvas() {
+  if (currentStep >= 0 && dfsSteps[currentStep]) {
+    const s = dfsSteps[currentStep];
+    if (s.currentNode) drawGraph(s); // Redraw for pulse effect
+  }
+  requestAnimationFrame(animateCanvas);
+}
+
+// ==================== PARTICLE SYSTEM ====================
+function initParticles() {
+  const canvas = document.getElementById('particles-canvas');
+  if (!canvas) return;
+  const header = document.getElementById('header');
+  canvas.width = header.clientWidth;
+  canvas.height = header.clientHeight;
+  const ctx = canvas.getContext('2d');
+  const particles = [];
+  for (let i = 0; i < 60; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.3,
+      color: Math.random() < 0.5 ? '#00fff0' : (Math.random() < 0.6 ? '#b015ff' : '#ff00aa'),
+      alpha: Math.random() * 0.6 + 0.2
+    });
+  }
+  function animP() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    });
+    requestAnimationFrame(animP);
+  }
+  animP();
+}
+
+// ==================== NEW FEATURES ====================
+
+// --- State ---
+let focusMode = false;
+let challengeMode = false;
+let soundEnabled = false;
+let challengeScore = 0;
+let challengeStreak = 0;
+let quizTimerInterval = null;
+let quizTimeLeft = 10;
+let difficulty = 'easy';
+let audioCtx = null;
+let masterVolume = 0.4;
+// Battle mode
+let battlePlaying = false;
+let battleDFSStep = -1;
+let battleBFSStep = -1;
+let battleDFSSteps = [];
+let battleBFSSteps = [];
+let battleInterval = null;
+
+// --- Timeline scrubber ---
+function jumpToStep(idx) {
+  if (dfsSteps.length === 0) { buildDFSSteps(); }
+  if (idx < 0 || idx >= dfsSteps.length) return;
+  // Rebuild cumulative state up to idx
+  visitOrder = []; backtrackLog = []; visitedChips = [];
+  document.getElementById('backtrack-log').innerHTML = '<span class="empty-msg">No backtracks yet...</span>';
+  document.getElementById('cycle-badge').style.display = 'none';
+  for (let i = 0; i <= idx; i++) {
+    const s = dfsSteps[i];
+    if (s.type === 'visit' && !visitOrder.includes(s.node)) visitOrder.push(s.node);
+    if (s.type === 'done' && !visitedChips.includes(s.node)) visitedChips.push(s.node);
+    if (s.type === 'backtrack') backtrackLog.push(`${s.extra.from}→${s.node}`);
+  }
+  currentStep = idx;
+  applyStep(idx);
+  updateTimeline();
+}
+function updateTimeline() {
+  const sl = document.getElementById('timeline-slider');
+  const ct = document.getElementById('timeline-counter');
+  if (dfsSteps.length > 0) {
+    sl.max = dfsSteps.length - 1;
+    sl.value = currentStep;
+    ct.textContent = `${currentStep + 1} / ${dfsSteps.length}`;
+  } else {
+    sl.max = 0; sl.value = 0; ct.textContent = '0 / 0';
+  }
+}
+
+// --- Focus Mode ---
+function toggleFocusMode() {
+  focusMode = !focusMode;
+  document.getElementById('focus-btn').classList.toggle('active', focusMode);
+  const s = currentStep >= 0 ? dfsSteps[currentStep] : null;
+  drawGraph(s);
+}
+
+// --- Sound ---
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playSound(type) {
+  if (!soundEnabled || !audioCtx) return;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(masterVolume * 0.3, audioCtx.currentTime);
+  g.connect(audioCtx.destination);
+  const play = (freq, dur, wave='sine', delay=0) => {
+    const o = audioCtx.createOscillator();
+    o.type = wave;
+    o.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+    o.frequency.exponentialRampToValueAtTime(freq * 0.5, audioCtx.currentTime + delay + dur);
+    g.gain.setValueAtTime(masterVolume * 0.25, audioCtx.currentTime + delay);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + dur);
+    o.connect(g);
+    o.start(audioCtx.currentTime + delay);
+    o.stop(audioCtx.currentTime + delay + dur);
+  };
+  if (type === 'visit') play(520, 0.08, 'sine');
+  else if (type === 'backtrack') play(220, 0.12, 'triangle');
+  else if (type === 'backedge') { play(150, 0.1, 'square'); play(180, 0.1, 'square', 0.05); }
+  else if (type === 'complete') { play(440,0.1,'sine'); play(550,0.1,'sine',0.12); play(660,0.15,'sine',0.25); }
+  else if (type === 'correct') { play(660,0.08,'sine'); play(880,0.1,'sine',0.1); }
+  else if (type === 'wrong') play(120, 0.2, 'sawtooth');
+}
+function toggleSound() {
+  initAudio();
+  soundEnabled = !soundEnabled;
+  document.getElementById('sound-btn').classList.toggle('active', soundEnabled);
+}
+function setVolume(v) { masterVolume = parseFloat(v); }
+
+// --- Difficulty ---
+function setDifficulty(d, btn) {
+  difficulty = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (d === 'easy') loadPreset('tree');
+  else if (d === 'medium') loadPreset('default');
+  else if (d === 'hard') loadPreset('dense');
+}
+
+// --- Challenge Mode ---
+function toggleChallengeMode() {
+  challengeMode = !challengeMode;
+  document.getElementById('challenge-btn').classList.toggle('active', challengeMode);
+  if (challengeMode) {
+    challengeScore = 0; challengeStreak = 0;
+    updateHUD();
+    document.getElementById('challenge-overlay').classList.add('active');
+    document.getElementById('challenge-quiz-box').style.display = 'none';
+  } else {
+    clearQuizTimer();
+    document.getElementById('challenge-overlay').classList.remove('active');
+    resumeAfterQuiz();
+  }
+}
+function updateHUD() {
+  document.getElementById('hud-score').textContent = challengeScore;
+  const streak = challengeStreak;
+  document.getElementById('hud-streak').textContent = streak >= 3 ? `🔥 Streak ×${streak >= 6 ? 3 : 2} (${streak})` : streak > 0 ? `Streak: ${streak}` : '';
+}
+function showQuiz(currentNode, correctNext, allNeighbors) {
+  const box = document.getElementById('challenge-quiz-box');
+  box.style.display = 'block';
+  document.getElementById('quiz-question').innerHTML =
+    `At node <b style="color:var(--yellow);font-size:18px">${currentNode}</b><br>Which node does DFS visit next?`;
+  const distractors = graph.nodes.filter(n => n !== correctNext && n !== currentNode)
+    .sort(() => Math.random() - 0.5).slice(0, Math.min(3, graph.nodes.length - 2));
+  const choices = [...distractors, correctNext].sort(() => Math.random() - 0.5);
+  document.getElementById('quiz-choices').innerHTML = choices.map(n =>
+    `<button class="quiz-choice" onclick="handleGuess('${n}','${correctNext}')">${n}</button>`
+  ).join('');
+  document.getElementById('quiz-feedback').textContent = '';
+  startQuizTimer(correctNext);
+}
+function startQuizTimer(correct) {
+  clearQuizTimer();
+  quizTimeLeft = 10;
+  document.getElementById('quiz-timer-bar').style.width = '100%';
+  quizTimerInterval = setInterval(() => {
+    quizTimeLeft -= 0.1;
+    const pct = Math.max(0, (quizTimeLeft / 10) * 100);
+    document.getElementById('quiz-timer-bar').style.width = pct + '%';
+    if (quizTimeLeft <= 0) {
+      clearQuizTimer();
+      document.getElementById('quiz-feedback').innerHTML = `⏰ Time up! Correct: <b style="color:var(--neon-green)">${correct}</b>`;
+      challengeStreak = 0; updateHUD();
+      playSound('wrong');
+      setTimeout(resumeAfterQuiz, 1500);
+    }
+  }, 100);
+}
+function clearQuizTimer() { clearInterval(quizTimerInterval); }
+function handleGuess(chosen, correct) {
+  clearQuizTimer();
+  document.querySelectorAll('.quiz-choice').forEach(b => b.onclick = null);
+  const mult = challengeStreak >= 6 ? 3 : challengeStreak >= 3 ? 2 : 1;
+  if (chosen === correct) {
+    challengeScore += 100 * mult; challengeStreak++;
+    document.getElementById('quiz-feedback').textContent = `✔ Correct! +${100*mult}pts`;
+    document.querySelectorAll('.quiz-choice').forEach(b => { if (b.textContent === chosen) b.classList.add('correct'); });
+    playSound('correct');
+  } else {
+    challengeStreak = 0;
+    document.getElementById('quiz-feedback').innerHTML = `✘ Wrong! Correct: <b style="color:var(--neon-green)">${correct}</b>`;
+    document.querySelectorAll('.quiz-choice').forEach(b => {
+      if (b.textContent === chosen) b.classList.add('wrong');
+      if (b.textContent === correct) b.classList.add('correct');
+    });
+    playSound('wrong');
+  }
+  updateHUD();
+  setTimeout(resumeAfterQuiz, 1500);
+}
+function resumeAfterQuiz() {
+  document.getElementById('challenge-quiz-box').style.display = 'none';
+  // Continue to next step automatically
+  if (challengeMode && currentStep < dfsSteps.length - 1) {
+    setTimeout(() => { nextStep(); }, 300);
+  }
+}
+
+// --- AI Graph Generator ---
+function aiGenerate() {
+  const raw = (document.getElementById('ai-gen-input').value || '').toLowerCase().trim();
+  if (!raw) return;
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let nodeCount = 8, isTree = false, isCyclic = false, isDense = false, height = 3;
+  const numMatch = raw.match(/(\d+)\s*node/);
+  if (numMatch) nodeCount = Math.max(3, Math.min(14, parseInt(numMatch[1])));
+  const hMatch = raw.match(/height\s*(\d+)/);
+  if (hMatch) { height = parseInt(hMatch[1]); isTree = true; }
+  if (raw.includes('tree')) isTree = true;
+  if (raw.includes('dense') || raw.includes('complete')) isDense = true;
+  if (raw.includes('cyclic') || raw.includes('cycle')) isCyclic = true;
+  const nodes = letters.slice(0, nodeCount).split('');
+  const positions = {};
+  // Layout nodes in a grid-like spread
+  nodes.forEach((n, i) => {
+    const angle = (i / nodes.length) * 2 * Math.PI - Math.PI/2;
+    positions[n] = [0.5 + 0.38 * Math.cos(angle), 0.5 + 0.38 * Math.sin(angle)];
+  });
+  const edges = [], edgeSet = new Set();
+  const addEdge = (a, b) => {
+    const k = [a,b].sort().join('-');
+    if (!edgeSet.has(k) && a !== b) { edgeSet.add(k); edges.push([a,b,Math.floor(Math.random()*9)+1]); }
+  };
+  if (isTree) {
+    // BFS-style tree generation
+    const q = ['A'], assigned = new Set(['A']);
+    let ni = 1, childW = isTree ? 2 : 3;
+    while (q.length && ni < nodes.length) {
+      const parent = q.shift();
+      for (let c = 0; c < childW && ni < nodes.length; c++, ni++) {
+        addEdge(parent, nodes[ni]); q.push(nodes[ni]); assigned.add(nodes[ni]);
+      }
+    }
+    // Circular layout for trees
+    nodes.forEach((n, i) => { positions[n] = [
+      0.12 + (i % 4) * 0.24 + 0.05,
+      0.1 + Math.floor(i / 4) * 0.28 + 0.05
+    ]; });
+  } else {
+    // Spanning tree for connectivity
+    const shuffled = [...nodes].sort(() => Math.random() - 0.5);
+    for (let i = 1; i < shuffled.length; i++) addEdge(shuffled[Math.floor(Math.random()*i)], shuffled[i]);
+    // Extra edges
+    const extra = isDense ? nodes.length * 2 : isCyclic ? Math.ceil(nodes.length * 0.5) : Math.ceil(nodes.length * 0.3);
+    for (let i = 0; i < extra * 5 && edges.length < nodes.length - 1 + extra; i++) {
+      const a = nodes[Math.floor(Math.random()*nodes.length)];
+      const b = nodes[Math.floor(Math.random()*nodes.length)];
+      addEdge(a, b);
+    }
+  }
+  graph.nodes = nodes; graph.edges = edges.map(e => ({from:e[0],to:e[1],w:e[2]}));
+  nodePos = positions;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  resetAll(); populateStartNodeSel(); renderAdjList(null,{}); renderTimestampTable([]);
+  resizeCanvases();
+  setTimeout(() => { drawGraph(); drawTree(); }, 50);
+  document.getElementById('ai-gen-input').value = '';
+}
+
+// --- Forward/Cross Edge Detection (patch into buildDFSSteps) ---
+// Wraps the existing buildDFSSteps to also compute forward/cross edges
+const _origBuildDFS = buildDFSSteps;
+buildDFSSteps = function() {
+  _origBuildDFS();
+  // Annotate steps with forward/cross counts (post-process)
+  // Also used by drawGraph for coloring
+};
+// Track finish times for edge classification
+function classifyEdge(fromNode, toNode, timestamps) {
+  const ft = timestamps || {};
+  const fromDisc = ft[fromNode] ? ft[fromNode].disc : -1;
+  const toDisc = ft[toNode] ? ft[toNode].disc : -1;
+  const fromFin = ft[fromNode] ? ft[fromNode].finish : -1;
+  const toFin = ft[toNode] ? ft[toNode].finish : -1;
+  // If toFinish < 0 and toDisc < fromDisc → back edge (toNode is ancestor)
+  // If toDisc > fromDisc and toFin > 0 → forward edge
+  // If toFin > 0 and toDisc < fromDisc → cross edge
+  if (toFin < 0) return 'back';
+  if (toDisc > fromDisc) return 'forward';
+  return 'cross';
+}
+
+// --- BFS vs DFS Battle ---
+function buildBFSSteps() {
+  const bfsSteps = [];
+  const visited = new Set();
+  const queue = [startNode];
+  visited.add(startNode);
+  let depth = 0;
+  const depthMap = {[startNode]: 0};
+  const addStep = (type, node, extra={}) => bfsSteps.push({
+    type, node,
+    visited: new Set(visited),
+    currentNode: node,
+    path: [...queue],
+    treeEdges: extra.treeEdges ? extra.treeEdges.map(e=>({...e})) : [],
+    backEdges: [],
+    backtracking: new Set(),
+    callStack: [],
+    timestamps: {},
+    extra
+  });
+  const treeEdges = [];
+  while (queue.length) {
+    const node = queue.shift();
+    depth = depthMap[node] || 0;
+    addStep('visit', node, { depth, treeEdges: [...treeEdges] });
+    const nbrs = getNeighbors(node);
+    for (const nb of nbrs) {
+      if (!visited.has(nb)) {
+        visited.add(nb);
+        queue.push(nb);
+        depthMap[nb] = depth + 1;
+        treeEdges.push({from: node, to: nb});
+        addStep('explore', node, { neighbor: nb, depth, treeEdges: [...treeEdges] });
+      }
+    }
+    addStep('done', node, { depth, treeEdges: [...treeEdges] });
+  }
+  addStep('complete', null, { treeEdges: [...treeEdges] });
+  return bfsSteps;
+}
+function openBattleMode() {
+  const wrap = document.getElementById('battle-wrap');
+  wrap.classList.add('active');
+  battleDFSStep = -1; battleBFSStep = -1; battlePlaying = false;
+  // Build steps
+  buildDFSSteps();
+  battleDFSSteps = [...dfsSteps];
+  battleBFSSteps = buildBFSSteps();
+  // Size canvases
+  const dc = document.getElementById('battle-dfs-canvas');
+  const bc = document.getElementById('battle-bfs-canvas');
+  setTimeout(() => {
+    dc.width = dc.parentElement.clientWidth;
+    dc.height = dc.parentElement.clientHeight - 32;
+    bc.width = bc.parentElement.clientWidth;
+    bc.height = bc.parentElement.clientHeight - 32;
+    drawBattleSide('dfs', null);
+    drawBattleSide('bfs', null);
+  }, 50);
+  updateBattleStats();
+}
+function closeBattleMode() {
+  document.getElementById('battle-wrap').classList.remove('active');
+  clearInterval(battleInterval); battlePlaying = false;
+  document.getElementById('battle-play-btn').textContent = '▶ START';
+}
+function toggleBattlePlay() {
+  if (battlePlaying) {
+    clearInterval(battleInterval); battlePlaying = false;
+    document.getElementById('battle-play-btn').textContent = '▶ RESUME';
+  } else {
+    battlePlaying = true;
+    document.getElementById('battle-play-btn').textContent = '⏸ PAUSE';
+    const speed = parseInt(document.getElementById('speed-slider').value);
+    const delay = Math.round(1200 - speed * 100);
+    battleInterval = setInterval(() => {
+      let dfsD = battleDFSStep < battleDFSSteps.length - 1;
+      let bfsD = battleBFSStep < battleBFSSteps.length - 1;
+      if (dfsD) { battleDFSStep++; drawBattleSide('dfs', battleDFSSteps[battleDFSStep]); }
+      if (bfsD) { battleBFSStep++; drawBattleSide('bfs', battleBFSSteps[battleBFSStep]); }
+      updateBattleStats();
+      if (!dfsD && !bfsD) {
+        clearInterval(battleInterval); battlePlaying = false;
+        document.getElementById('battle-play-btn').textContent = '✓ Done';
+        const dfsS = battleDFSSteps.filter(s=>s.type==='visit').length;
+        const bfsS = battleBFSSteps.filter(s=>s.type==='visit').length;
+        document.getElementById('bs-winner').textContent = dfsS <= bfsS ? '◈ DFS' : '◈ BFS';
+        document.getElementById('bs-winner').style.color = dfsS <= bfsS ? '#00fff0' : '#ff00aa';
+      }
+    }, delay);
+  }
+}
+function drawBattleSide(side, state) {
+  const c = document.getElementById(`battle-${side}-canvas`);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  if (!W || !H) return;
+  ctx.clearRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle = 'rgba(0,255,240,0.04)'; ctx.lineWidth = 0.5;
+  for (let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for (let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  const r = Math.min(W,H) * 0.038;
+  const visited = state ? state.visited : new Set();
+  const currentNode = state ? state.currentNode : null;
+  const treeEdges = state ? (state.treeEdges || []) : [];
+  const accentColor = side === 'dfs' ? '#00fff0' : '#ff00aa';
+  // Draw edges
+  graph.edges.forEach(e => {
+    const isTree = treeEdges.some(te => (te.from===e.from&&te.to===e.to)||(te.from===e.to&&te.to===e.from));
+    const p1 = nodePos[e.from], p2 = nodePos[e.to];
+    if (!p1||!p2) return;
+    const x1=p1[0]*W, y1=p1[1]*H, x2=p2[0]*W, y2=p2[1]*H;
+    ctx.save();
+    if (isTree) { ctx.strokeStyle=accentColor; ctx.lineWidth=2.5; ctx.shadowColor=accentColor; ctx.shadowBlur=10; ctx.setLineDash([]); }
+    else { ctx.strokeStyle='rgba(0,255,240,0.12)'; ctx.lineWidth=1; ctx.setLineDash([4,4]); }
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.restore();
+  });
+  // Draw nodes
+  graph.nodes.forEach(n => {
+    const p = nodePos[n]; if(!p) return;
+    const x=p[0]*W, y=p[1]*H;
+    let fill='#12123a', stroke='rgba(0,255,240,0.3)', glow=null, textC='#a0a8cc';
+    if (n===currentNode) { fill='rgba(40,30,0,0.95)'; stroke='#ffe600'; glow='#ffe600'; textC='#ffe600'; }
+    else if (visited.has(n)) { fill='rgba(0,40,30,0.95)'; stroke=accentColor; glow=accentColor; textC=accentColor; }
+    ctx.save();
+    if (glow) { ctx.shadowColor=glow; ctx.shadowBlur=20; }
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle=stroke; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle=textC; ctx.font=`bold ${Math.max(10,r*0.65)}px Orbitron`;
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(n,x,y);
+    ctx.restore();
+  });
+}
+function updateBattleStats() {
+  const ds = battleDFSStep >= 0 ? battleDFSSteps[battleDFSStep] : null;
+  const bs = battleBFSStep >= 0 ? battleBFSSteps[battleBFSStep] : null;
+  document.getElementById('bs-dfs-steps').textContent = battleDFSStep + 1;
+  document.getElementById('bs-bfs-steps').textContent = battleBFSStep + 1;
+  document.getElementById('bs-dfs-vis').textContent = ds ? ds.visited.size : 0;
+  document.getElementById('bs-bfs-vis').textContent = bs ? bs.visited.size : 0;
+  const dfsMaxD = ds ? (ds.extra.depth||0) : 0;
+  const bfsMaxD = bs ? (bs.extra.depth||0) : 0;
+  document.getElementById('bs-dfs-depth').textContent = dfsMaxD;
+  document.getElementById('bs-bfs-depth').textContent = bfsMaxD;
+}
+
+// ==================== START ====================
+window.addEventListener('load', () => {
+  init();
+  initParticles();
+  requestAnimationFrame(animateCanvas);
+});
+</script>
+
+<!-- Challenge Mode Overlay -->
+<div id="challenge-overlay">
+  <div id="challenge-hud">
+    <div class="hud-label">SCORE</div>
+    <div class="hud-score" id="hud-score">0</div>
+    <div class="hud-streak" id="hud-streak"></div>
+  </div>
+  <div id="challenge-quiz-box">
+    <div id="quiz-title">⚔ CHALLENGE MODE</div>
+    <div id="quiz-question">Loading...</div>
+    <div id="quiz-timer-bar-wrap"><div id="quiz-timer-bar" style="width:100%"></div></div>
+    <div id="quiz-choices"></div>
+    <div id="quiz-feedback"></div>
+  </div>
+</div>
+
+<!-- BFS vs DFS Battle Mode -->
+<div id="battle-wrap">
+  <div id="battle-header">
+    <div id="battle-title">⚡ BFS vs DFS BATTLE</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button id="battle-play-btn" onclick="toggleBattlePlay()">▶ START</button>
+      <button id="battle-close-btn" onclick="closeBattleMode()">✕ Exit</button>
+    </div>
+  </div>
+  <div id="battle-canvases">
+    <div class="battle-side">
+      <div class="battle-side-label dfs">◈ DFS — Depth-First Search</div>
+      <canvas class="battle-canvas" id="battle-dfs-canvas"></canvas>
+    </div>
+    <div id="battle-divider"></div>
+    <div class="battle-side">
+      <div class="battle-side-label bfs">◈ BFS — Breadth-First Search</div>
+      <canvas class="battle-canvas" id="battle-bfs-canvas"></canvas>
+    </div>
+  </div>
+  <div id="battle-stats">
+    <div class="battle-stat-group">
+      <div class="battle-stat-label">Steps</div>
+      <div class="battle-stat-vals"><div class="battle-stat-val dfs" id="bs-dfs-steps">0</div><div class="battle-stat-val bfs" id="bs-bfs-steps">0</div></div>
+    </div>
+    <div class="battle-stat-group">
+      <div class="battle-stat-label">Visited</div>
+      <div class="battle-stat-vals"><div class="battle-stat-val dfs" id="bs-dfs-vis">0</div><div class="battle-stat-val bfs" id="bs-bfs-vis">0</div></div>
+    </div>
+    <div class="battle-stat-group">
+      <div class="battle-stat-label">Max Depth</div>
+      <div class="battle-stat-vals"><div class="battle-stat-val dfs" id="bs-dfs-depth">0</div><div class="battle-stat-val bfs" id="bs-bfs-depth">0</div></div>
+    </div>
+    <div class="battle-stat-group">
+      <div class="battle-stat-label">Winner</div>
+      <div class="battle-stat-val" id="bs-winner" style="font-size:13px;color:var(--yellow)">—</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
